@@ -36,7 +36,7 @@ from pathlib import Path
 # =============================================================================
 # This must be the first Streamlit command!
 st.set_page_config(
-    page_title="ML Prediction App",  # TODO: Update with your project name
+    page_title="Market Cap Prediction Tool",  # TODO: Update with your project name
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -114,22 +114,22 @@ st.sidebar.markdown("---")
 st.sidebar.markdown("### About")
 st.sidebar.info(
     """
-    This app deploys machine learning models trained on [YOUR DATASET].
+    This app deploys machine learning models trained on industry market cap data.
 
-    - **Regression**: Predicts [YOUR TARGET]
-    - **Classification**: Predicts [YOUR CATEGORIES]
+    - **Regression**: Predicts market cap value
+    - **Classification**: Predicts small/mid/large cap
     """
 )
 # TODO: UPDATE YOUR NAME HERE! This shows visitors who built this app.
-st.sidebar.markdown("**Built by:** [YOUR NAME]")
-st.sidebar.markdown("[GitHub Repo](https://github.com/YOUR-USERNAME/YOUR-REPO)")
+st.sidebar.markdown("**Built by:** Denz'l Chapman")
+st.sidebar.markdown("[GitHub Repo]https://github.com/denzlchapman/individual-capstone-denzlchapman.git")
 
 
 # =============================================================================
 # HOME PAGE
 # =============================================================================
 if page == "🏠 Home":
-    st.title("🤖 Machine Learning Prediction App")
+    st.title("🤖 Machine Learning Market Cap Prediction App")
     st.markdown("### Welcome!")
 
     st.write(
@@ -137,8 +137,8 @@ if page == "🏠 Home":
         This application allows you to make predictions using trained machine learning models.
 
         **What you can do:**
-        - 📈 **Regression Model**: Predict a numerical value
-        - 🏷️ **Classification Model**: Predict a category
+        - 📈 **Regression Model**: Predicts a companies market cap value 
+        - 🏷️ **Classification Model**: Predicts which category (small/mid/large)
 
         Use the sidebar to navigate between different models.
         """
@@ -149,16 +149,17 @@ if page == "🏠 Home":
     st.markdown("### About This Project")
     st.write(
         """
-        **Dataset:** [Describe your dataset]
+        **Dataset:** This dataset comes from Kaggle and contains financial data on 1500 companies across 8 different industries in the stock market.
 
-        **Problem Statement:** [What are you predicting and why?]
+        **Problem Statement:** The goal of this project was to build a regression model to predict the market cap of a company and a classification model to categorize companies into small, mid, or large cap based on their financial features.
 
         **Models Used:**
-        - Regression: [Your regression model type]
-        - Classification: [Your classification model type]
+        - Regression: Gradient Boosting Regression
+        - Classification: Logistic Regression
         """
     )
-
+    st.markdown("---")
+    st.image("https://fsa-sl-grid.enterprise.slack.com/files/U09PU403WNN/F0ABUM5UZU2/screenshot_2026-01-29_120257.png", caption="Original Dataset Sample")
     # Show a sample of your data or an image (optional)
     # st.image("path/to/image.png", caption="Sample visualization")
 
@@ -167,8 +168,8 @@ if page == "🏠 Home":
 # REGRESSION PAGE
 # =============================================================================
 elif page == "📈 Regression Model":
-    st.title("📈 Regression Prediction")
-    st.write("Enter feature values to get a numerical prediction.")
+    st.title("📊Marketcap Prediction")
+    st.write("Enter financial metrics to get market cap prediction.")
 
     # Load models
     models = load_models()
@@ -180,7 +181,7 @@ elif page == "📈 Regression Model":
     features = models['regression_features']
 
     st.markdown("---")
-    st.markdown("### Enter Feature Values")
+    st.markdown("### 📊 Financial Metrics Input")
 
     # Create input fields for each feature
     # TODO: CUSTOMIZE THIS SECTION FOR YOUR FEATURES!
@@ -192,27 +193,128 @@ elif page == "📈 Regression Model":
     # Create columns for better layout
     col1, col2 = st.columns(2)
 
-    input_values = {}
+    with col1:
+        total_assets = st.number_input(
+            "Total Assets (Billions $)",
+            min_value = 0.0,
+            value = 50.0,
+            step = 1.0
+            )
 
-    for i, feature in enumerate(features):
-        # Alternate between columns
-        with col1 if i % 2 == 0 else col2:
+        total_debt = st.number_input(
+            "Total Debt (Billions $)",
+            min_value = 0.0,
+            value = 20.0,
+            step = 1.0
+            )
+
+        revenue = st.number_input(
+            "Revenue (Billions $)",
+            min_value = 0.0,
+            value = 30.0,
+            step = 1.0
+            )
+
+        earnings = st.number_input(
+            "Earnings (Billions $)",
+            value = 5.0,
+            step = 1.0
+            )
+
+    with col2:
+        net_assets = st.number_input(
+            "Net Assets (Billions $)",
+            min_value = 0.0,
+            value = 25.0,
+            step = 1.0
+            )
+
+        st.markdown("### 📈 Ratios")
+
+        return_on_assets = st.number_input(
+            "Return on Assets (%)",
+            min_value = -100.0,
+            max_value = 100.0,
+            value = 10.0,
+            step = 0.5
+            )
+
+        return_on_equity = st.number_input(
+            "Return On Equity (%)",
+            min_value = -200.0,
+            max_value = 200.0,
+            value = 15.0,
+            step = 0.5
+            )
+
+        debt_to_equity = st.number_input(
+            "Debt to Equity",
+            min_value = 0.0,
+            value = 1.0,
+            step = 0.5
+            )
+
+    st.markdown("---")
+    st.markdown("## 🏭 Industry")
+
+    industry = st.selectbox(
+        "Select Industry",
+        ["Pharmaceuticals",
+        "Technology",
+        "Real Estate",
+        "Food",
+        "Oil & Gas",
+        "Insurance",
+        "Retail"]
+        )
+
+    industry_columns = [
+        "industry_pharmaceuticals",
+        "industry_technology",
+        "industry_real_estate",
+        "industry_food",
+        "industry_oil_gas",
+        "industry_insurance",
+        "industry_retail"
+        ]
+
+    input_values = {col: 0 for col in industry_columns}
+
+    industry_map = {
+        "Pharmaceuticals" : "Industry_Pharmaceuticals",
+        "Technology" : "Industry_technology",
+        "Real Estate" : "Industry_Real Estate",
+        "Food" : "Industry_Food",
+        "Oil & Gas" : "Industry_Oil&Gas",
+        "Insurance" : "Industry_Insurance",
+        "Retail" : "Industry_Retail"
+    }  
+
+    input_values[industry_map[industry]] = 1
+
+    input_values.update({
+        "total-assets" : total_assets,
+        "total-debt" : total_debt,
+        "revenue" : revenue,
+        "net-assets" : net_assets,
+        "earnings" : earnings,
+        "return-on-assets" : return_on_assets,
+        "return-on-equity" : return_on_equity,
+        "debt-to-equity" : debt_to_equity,
+    })    
+
             # TODO: Customize each input based on your feature type and range
             # Example: For a feature like 'bedrooms' you might use:
             # input_values[feature] = st.number_input(feature, min_value=0, max_value=10, value=3)
 
-            input_values[feature] = st.number_input(
-                label=feature,
-                value=0.0,  # Default value - UPDATE THIS
-                help=f"Enter value for {feature}"
-            )
-
     st.markdown("---")
 
     # Prediction button
-    if st.button("🔮 Make Regression Prediction", type="primary"):
+    if st.button("📈 Predict Market Cap", use_container_width=True):
         # Create input dataframe
         input_df = pd.DataFrame([input_values])
+        input_df[["revenue", "total-assets", "net-assets", "earnings", "total-debt"]] = \
+            np.log1p(input_df[["revenue", "total-assets", "net-assets", "earnings", "total-debt"]])
 
         # Make prediction
         prediction = make_regression_prediction(models, input_df)
@@ -232,8 +334,8 @@ elif page == "📈 Regression Model":
 # CLASSIFICATION PAGE
 # =============================================================================
 elif page == "🏷️ Classification Model":
-    st.title("🏷️ Classification Prediction")
-    st.write("Enter feature values to get a category prediction.")
+    st.title("🏷️ Company Size Prediction")
+    st.write("Enter financial features to get market cap size prediction.")
 
     # Load models
     models = load_models()
@@ -270,24 +372,126 @@ elif page == "🏷️ Classification Model":
 
     col1, col2 = st.columns(2)
 
-    input_values = {}
-
-    for i, feature in enumerate(features):
-        with col1 if i % 2 == 0 else col2:
-            # TODO: Customize each input based on your feature type and range
-            input_values[feature] = st.number_input(
-                label=feature,
-                value=0.0,
-                key=f"class_{feature}",  # Unique key for classification inputs
-                help=f"Enter value for {feature}"
+    with col1:
+        total_assets = st.number_input(
+            "Total Assets (Billions $)",
+            min_value = 0.0,
+            value = 50.0,
+            step = 1.0
             )
+
+        total_debt = st.number_input(
+            "Total Debt (Billions $)",
+            min_value = 0.0,
+            value = 20.0,
+            step = 1.0
+            )
+
+        revenue = st.number_input(
+            "Revenue (Billions $)",
+            min_value = 0.0,
+            value = 30.0,
+            step = 1.0
+            )
+
+        earnings = st.number_input(
+            "Earnings (Billions $)",
+            value = 5.0,
+            step = 1.0
+            )
+
+    with col2:
+        net_assets = st.number_input(
+            "Net Assets (Billions $)",
+            min_value = 0.0,
+            value = 25.0,
+            step = 1.0
+            )
+
+        st.markdown("### 📈 Ratios")
+
+        return_on_assets = st.number_input(
+            "Return on Assets (%)",
+            min_value = -100.0,
+            max_value = 100.0,
+            value = 10.0,
+            step = 0.5
+            )
+
+        return_on_equity = st.number_input(
+            "Return On Equity (%)",
+            min_value = -200.0,
+            max_value = 200.0,
+            value = 15.0,
+            step = 0.5
+            )
+
+        debt_to_equity = st.number_input(
+            "Debt to Equity",
+            min_value = 0.0,
+            value = 1.0,
+            step = 0.5
+            )
+
+    st.markdown("---")
+    st.markdown("## 🏭 Industry")
+
+    industry = st.selectbox(
+        "Select Industry",
+        ["Pharmaceuticals",
+        "Technology",
+        "Real Estate",
+        "Food",
+        "Oil & Gas",
+        "Insurance",
+        "Retail"]
+        )
+
+    industry_columns = [
+        "industry_pharmaceuticals",
+        "industry_technology",
+        "industry_real_estate",
+        "industry_food",
+        "industry_oil_gas",
+        "industry_insurance",
+        "industry_retail"
+        ]
+
+    input_values = {col: 0 for col in industry_columns}
+
+    industry_map = {
+        "Pharmaceuticals" : "Industry_Pharmaceuticals",
+        "Technology" : "Industry_technology",
+        "Real Estate" : "Industry_Real Estate",
+        "Food" : "Industry_Food",
+        "Oil & Gas" : "Industry_Oil&Gas",
+        "Insurance" : "Industry_Insurance",
+        "Retail" : "Industry_Retail"
+    }  
+
+    input_values[industry_map[industry]] = 1
+
+    input_values.update({
+        "total-assets" : total_assets,
+        "total-debt" : total_debt,
+        "revenue" : revenue,
+        "net-assets" : net_assets,
+        "earnings" : earnings,
+        "return-on-assets" : return_on_assets,
+        "return-on-equity" : return_on_equity,
+        "debt-to-equity" : debt_to_equity,
+    })    
+
+
 
     st.markdown("---")
 
     # Prediction button
-    if st.button("🔮 Make Classification Prediction", type="primary"):
+    if st.button("📊 Predict Market Cap Classification", type="primary"):
         # Create input dataframe
         input_df = pd.DataFrame([input_values])
+        input_df[["revenue", "total-assets", "net-assets", "earnings", "total-debt"]] = \
+            np.log1p(input_df[["revenue", "total-assets", "net-assets", "earnings", "total-debt"]])
 
         # Make prediction
         predicted_label, predicted_index = make_classification_prediction(models, input_df)
@@ -318,7 +522,7 @@ st.markdown("---")
 st.markdown(
     """
     <div style='text-align: center; color: gray;'>
-        Built by [YOUR NAME] | Full Stack Academy AI & ML Bootcamp
+        Built by Denz'l Chapman | Full Stack Academy AI & ML Bootcamp
     </div>
     """,
     unsafe_allow_html=True
