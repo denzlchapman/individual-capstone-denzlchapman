@@ -159,7 +159,7 @@ if page == "🏠 Home":
         """
     )
     st.markdown("---")
-    st.image("https://fsa-sl-grid.enterprise.slack.com/files/U09PU403WNN/F0ABUM5UZU2/screenshot_2026-01-29_120257.png", caption="Original Dataset Sample")
+    st.image("data/raw/image/original-dataset.png", caption="Original Dataset Sample")
     # Show a sample of your data or an image (optional)
     # st.image("path/to/image.png", caption="Sample visualization")
 
@@ -269,16 +269,14 @@ elif page == "📈 Regression Model":
         )
 
     industry_columns = [
-        "industry_pharmaceuticals",
-        "industry_technology",
-        "industry_real_estate",
-        "industry_food",
-        "industry_oil_gas",
-        "industry_insurance",
-        "industry_retail"
+        "Industry_Pharmaceuticals",
+        "Industry_Technology",
+        "Industry_Real Estate",
+        "Industry_Food",
+        "Industry_Oil&Gas",
+        "Industry_Insurance",
+        "Industry_Retail"
         ]
-
-    input_values = {col: 0 for col in industry_columns}
 
     industry_map = {
         "Pharmaceuticals" : "Industry_Pharmaceuticals",
@@ -290,6 +288,7 @@ elif page == "📈 Regression Model":
         "Retail" : "Industry_Retail"
     }  
 
+    input_values = {col: 0 for col in industry_columns}
     input_values[industry_map[industry]] = 1
 
     input_values.update({
@@ -313,9 +312,10 @@ elif page == "📈 Regression Model":
     if st.button("📈 Predict Market Cap", use_container_width=True):
         # Create input dataframe
         input_df = pd.DataFrame([input_values])
-        input_df[["revenue", "total-assets", "net-assets", "earnings", "total-debt"]] = \
-            np.log1p(input_df[["revenue", "total-assets", "net-assets", "earnings", "total-debt"]])
-
+        
+        log_cols = ["revenue", "total-assets", "net-assets", "earnings", "total-debt"]
+        input_df[log_cols] = np.log1p(input_df[log_cols])
+        input_df = input_df.reindex(columns=models["regression_features"], fill_value=0)
         # Make prediction
         prediction = make_regression_prediction(models, input_df)
 
@@ -448,16 +448,14 @@ elif page == "🏷️ Classification Model":
         )
 
     industry_columns = [
-        "industry_pharmaceuticals",
-        "industry_technology",
-        "industry_real_estate",
-        "industry_food",
-        "industry_oil_gas",
-        "industry_insurance",
-        "industry_retail"
+        "Industry_Pharmaceuticals",
+        "Industry_Technology",
+        "Industry_Real Estate",
+        "Industry_Food",
+        "Industry_Oil&Gas",
+        "Industry_Insurance",
+        "Industry_Retail"
         ]
-
-    input_values = {col: 0 for col in industry_columns}
 
     industry_map = {
         "Pharmaceuticals" : "Industry_Pharmaceuticals",
@@ -469,6 +467,7 @@ elif page == "🏷️ Classification Model":
         "Retail" : "Industry_Retail"
     }  
 
+    input_values = {col: 0 for col in industry_columns}
     input_values[industry_map[industry]] = 1
 
     input_values.update({
@@ -484,14 +483,15 @@ elif page == "🏷️ Classification Model":
 
 
 
+
     st.markdown("---")
 
+    # Prediction button
     # Prediction button
     if st.button("📊 Predict Market Cap Classification", type="primary"):
         # Create input dataframe
         input_df = pd.DataFrame([input_values])
-        input_df[["revenue", "total-assets", "net-assets", "earnings", "total-debt"]] = \
-            np.log1p(input_df[["revenue", "total-assets", "net-assets", "earnings", "total-debt"]])
+        input_df = input_df.reindex(columns=models["classification_features"], fill_value=0)
 
         # Make prediction
         predicted_label, predicted_index = make_classification_prediction(models, input_df)
@@ -499,9 +499,9 @@ elif page == "🏷️ Classification Model":
         # Display result with color coding
         # TODO: Customize colors based on your categories
         color_map = {
-            'Low': '🔴',
-            'Medium': '🟡',
-            'High': '🟢'
+            'Small Cap': '🔴',
+            'Mid Cap': '🟡',
+            'Large Cap': '🟢'
         }
         emoji = color_map.get(predicted_label, '🔵')
 
@@ -513,7 +513,6 @@ elif page == "🏷️ Classification Model":
         # Show input summary
         with st.expander("View Input Summary"):
             st.dataframe(input_df)
-
 
 # =============================================================================
 # FOOTER
