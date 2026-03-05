@@ -100,6 +100,62 @@ def make_classification_prediction(models, input_data):
     label = models['label_encoder'].inverse_transform(prediction)
     return label[0], prediction[0]
 
+def marketcap_prediction_output(value_billions):
+    if value_billions >= 1000:
+        trillions = value_billions / 1000
+        return f"${trillions:,.2f} Trillion"
+    
+    elif value_billions >= 1:
+        return f"${value_billions:,.2f} Billion"
+    
+    else:
+        millions = value_billions * 1000
+        return f"${value_billions:,.2f} Million"
+
+import numpy as np
+import pandas as pd
+
+import numpy as np
+import pandas as pd
+
+def make_classification_predictions(models, input_df: pd.DataFrame):
+    # 1) Apply the SAME preprocessing used in training
+    feature_names = models["classification_features"]
+    X = input_df.reindex(columns=feature_names, fill_value=0)
+
+    # If you log-transformed these during training for classification, do it here too:
+    log_cols = ["revenue", "total-assets", "net-assets", "earnings", "total-debt"]
+    for c in log_cols:
+        if c in X.columns:
+            X[c] = np.log1p(X[c])
+
+    # clean
+    X = X.replace([np.inf, -np.inf], np.nan).fillna(0)
+
+    # scale if used
+    if "classification_scaler" in models and models["classification_scaler"] is not None:
+        X_scaled = models["classification_scaler"].transform(X)
+        X = pd.DataFrame(X_scaled, columns=feature_names)
+
+    clf = models["classification_model"]
+
+    # 2) Get predicted class + probabilities
+    pred_class = clf.predict(X)[0]          # could be 0/1/2 or a string depending on training
+    proba = clf.predict_proba(X)[0]
+
+    # 3) Turn prediction into a human label
+    le = models.get("label_encoder", None)
+    if le is not None:
+        pred_label = le.inverse_transform([int(pred_class)])[0]
+        class_labels = list(le.inverse_transform(np.arange(len(clf.classes_))))
+    else:
+        pred_label = pred_class
+        class_labels = list(clf.classes_)
+
+    # 4) Build a JSON-safe probability dict
+    proba_dict = {str(lbl): float(p) for lbl, p in zip(class_labels, proba)}
+
+    return pred_label, proba_dict
 
 # =============================================================================
 # SIDEBAR - Navigation
@@ -198,45 +254,52 @@ elif page == "📈 Regression Model":
             "Total Assets (Billions $)",
             min_value = 0.0,
             value = 50.0,
-            step = 1.0
+            step = 1.0,
+            help="The total value of everything the company owns."
             )
 
         total_debt = st.number_input(
             "Total Debt (Billions $)",
             min_value = 0.0,
             value = 20.0,
-            step = 1.0
+            step = 1.0,
+            help="The total amount of money the company owes."
             )
 
         revenue = st.number_input(
             "Revenue (Billions $)",
             min_value = 0.0,
             value = 30.0,
-            step = 1.0
+            step = 1.0,
+            help="The 'Top Line' - total income from sales before expenses."
             )
 
         earnings = st.number_input(
             "Earnings (Billions $)",
             value = 5.0,
-            step = 1.0
+            step = 1.0,
+            help="The 'Bottom Line' - profit after all expenses."
             )
 
-    with col2:
         net_assets = st.number_input(
             "Net Assets (Billions $)",
             min_value = 0.0,
             value = 25.0,
-            step = 1.0
+            step = 1.0,
+            help="Total assets minus total liabilities."
             )
 
+    with col2:
         st.markdown("### 📈 Ratios")
 
+    
         return_on_assets = st.number_input(
             "Return on Assets (%)",
             min_value = -100.0,
             max_value = 100.0,
             value = 10.0,
-            step = 0.5
+            step = 0.5,
+            help="Net Income / Total assets, measures how efficiently a company uses its total assets."
             )
 
         return_on_equity = st.number_input(
@@ -244,14 +307,16 @@ elif page == "📈 Regression Model":
             min_value = -200.0,
             max_value = 200.0,
             value = 15.0,
-            step = 0.5
+            step = 0.5,
+            help="Net income / (total assets - total liabilities), measures a company's profitability."
             )
 
         debt_to_equity = st.number_input(
             "Debt to Equity",
             min_value = 0.0,
             value = 1.0,
-            step = 0.5
+            step = 0.5,
+            help="Total liabilities / (total assets - total liabilities), higher ratio indicates higher risk & reliance on debt"
             )
 
     st.markdown("---")
@@ -302,9 +367,7 @@ elif page == "📈 Regression Model":
         "debt-to-equity" : debt_to_equity,
     })    
 
-            # TODO: Customize each input based on your feature type and range
-            # Example: For a feature like 'bedrooms' you might use:
-            # input_values[feature] = st.number_input(feature, min_value=0, max_value=10, value=3)
+
 
     st.markdown("---")
 
@@ -317,13 +380,12 @@ elif page == "📈 Regression Model":
         input_df[log_cols] = np.log1p(input_df[log_cols])
         input_df = input_df.reindex(columns=models["regression_features"], fill_value=0)
         # Make prediction
-        prediction = make_regression_prediction(models, input_df)
+        prediction_log = make_regression_prediction(models, input_df)
+        prediction_billions = np.expm1(prediction_log)
+        prediction_output = marketcap_prediction_output(prediction_billions)
 
         # Display result
-        st.success(f"### Predicted Value: {prediction:,.2f}")
-
-        # TODO: Add context to your prediction
-        # st.write(f"This means... [interpretation]")
+        st.success(f"### Predicted Marketcap Value: {prediction_output}")
 
         # Show input summary
         with st.expander("View Input Summary"):
@@ -358,14 +420,14 @@ elif page == "🏷️ Classification Model":
             st.write("Categories were created by binning the numerical values:")
             for i, label in enumerate(binning['labels']):
                 if i == 0:
-                    st.write(f"- **{label}**: < {binning['bins'][i+1]}")
+                    st.write(f"- **{label}**: < ${binning['bins'][i+1]} Billion")
                 elif i == len(binning['labels']) - 1:
-                    st.write(f"- **{label}**: >= {binning['bins'][i]}")
+                    st.write(f"- **{label}**: >= ${binning['bins'][i]} Billion")
                 else:
-                    st.write(f"- **{label}**: {binning['bins'][i]} to {binning['bins'][i+1]}")
+                    st.write(f"- **{label}**: {binning['bins'][i]} Billion to ${binning['bins'][i+1]} Billion")
 
     st.markdown("---")
-    st.markdown("### Enter Feature Values")
+    st.markdown("### Enter Financial Metrics")
 
     # Create input fields
     # TODO: CUSTOMIZE THIS SECTION FOR YOUR FEATURES!
@@ -513,6 +575,7 @@ elif page == "🏷️ Classification Model":
         # Show input summary
         with st.expander("View Input Summary"):
             st.dataframe(input_df)
+        
 
 # =============================================================================
 # FOOTER
