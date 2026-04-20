@@ -1,26 +1,4 @@
 """
-Streamlit App for ML Model Deployment
-=====================================
-
-This is your Streamlit application that deploys both your regression and
-classification models. Users can input feature values and get predictions.
-
-HOW TO RUN LOCALLY:
-    streamlit run app/app.py
-
-HOW TO DEPLOY TO STREAMLIT CLOUD:
-    1. Push your code to GitHub
-    2. Go to share.streamlit.io
-    3. Connect your GitHub repo
-    4. Set the main file path to: app/app.py
-    5. Deploy!
-
-WHAT YOU NEED TO CUSTOMIZE:
-    1. Update the page title and description
-    2. Update feature input fields to match YOUR features
-    3. Update the model paths if you changed them
-    4. Customize the styling if desired
-
 Author: Denz'l Chapman  
 Dataset: Industry Market Cap Dataset
 """
@@ -34,9 +12,9 @@ from pathlib import Path
 # =============================================================================
 # PAGE CONFIGURATION
 # =============================================================================
-# This must be the first Streamlit command!
+
 st.set_page_config(
-    page_title="Market Cap Prediction Tool",  # TODO: Update with your project name
+    page_title="Market Cap Prediction Tool", 
     page_icon="🤖",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -46,28 +24,27 @@ st.set_page_config(
 # HELPER FUNCTIONS
 # =============================================================================
 
-@st.cache_resource  # Cache the models so they don't reload every time
+@st.cache_resource  
 def load_models():
     """Load all saved models and artifacts."""
-    # Get the path to the models directory
-    # This works both locally and on Streamlit Cloud
+   
     base_path = Path(__file__).parent.parent / "models"
 
     models = {}
 
     try:
-        # Load regression model and scaler
+        
         models['regression_model'] = joblib.load(base_path / "regression_model.pkl")
         models['regression_scaler'] = joblib.load(base_path / "regression_scaler.pkl")
         models['regression_features'] = joblib.load(base_path / "regression_features.pkl")
 
-        # Load classification model and artifacts
+        
         models['classification_model'] = joblib.load(base_path / "classification_model.pkl")
         models['classification_scaler'] = joblib.load(base_path / "classification_scaler.pkl")
         models['label_encoder'] = joblib.load(base_path / "label_encoder.pkl")
         models['classification_features'] = joblib.load(base_path / "classification_features.pkl")
 
-        # Optional: Load binning info for display
+        
         try:
             models['binning_info'] = joblib.load(base_path / "binning_info.pkl")
         except:
@@ -83,20 +60,20 @@ def load_models():
 
 def make_regression_prediction(models, input_data):
     """Make a regression prediction."""
-    # Scale the input
+    
     input_scaled = models['regression_scaler'].transform(input_data)
-    # Predict
+    
     prediction = models['regression_model'].predict(input_scaled)
     return prediction[0]
 
 
 def make_classification_prediction(models, input_data):
     """Make a classification prediction."""
-    # Scale the input
+    
     input_scaled = models['classification_scaler'].transform(input_data)
-    # Predict
+    
     prediction = models['classification_model'].predict(input_scaled)
-    # Get label
+    
     label = models['label_encoder'].inverse_transform(prediction)
     return label[0], prediction[0]
 
@@ -119,31 +96,30 @@ import numpy as np
 import pandas as pd
 
 def make_classification_predictions(models, input_df: pd.DataFrame):
-    # 1) Apply the SAME preprocessing used in training
+    
     feature_names = models["classification_features"]
     X = input_df.reindex(columns=feature_names, fill_value=0)
 
-    # If you log-transformed these during training for classification, do it here too:
+    
     log_cols = ["revenue", "total-assets", "net-assets", "earnings", "total-debt"]
     for c in log_cols:
         if c in X.columns:
             X[c] = np.log1p(X[c])
 
-    # clean
     X = X.replace([np.inf, -np.inf], np.nan).fillna(0)
 
-    # scale if used
+   
     if "classification_scaler" in models and models["classification_scaler"] is not None:
         X_scaled = models["classification_scaler"].transform(X)
         X = pd.DataFrame(X_scaled, columns=feature_names)
 
     clf = models["classification_model"]
 
-    # 2) Get predicted class + probabilities
-    pred_class = clf.predict(X)[0]          # could be 0/1/2 or a string depending on training
+    
+    pred_class = clf.predict(X)[0]          
     proba = clf.predict_proba(X)[0]
 
-    # 3) Turn prediction into a human label
+    
     le = models.get("label_encoder", None)
     if le is not None:
         pred_label = le.inverse_transform([int(pred_class)])[0]
@@ -152,7 +128,7 @@ def make_classification_predictions(models, input_df: pd.DataFrame):
         pred_label = pred_class
         class_labels = list(clf.classes_)
 
-    # 4) Build a JSON-safe probability dict
+    
     proba_dict = {str(lbl): float(p) for lbl, p in zip(class_labels, proba)}
 
     return pred_label, proba_dict
@@ -176,7 +152,7 @@ st.sidebar.info(
     - **Classification**: Predicts small/mid/large cap
     """
 )
-# TODO: UPDATE YOUR NAME HERE! This shows visitors who built this app.
+
 st.sidebar.markdown("**Built by:** Denz'l Chapman")
 st.sidebar.markdown("[GitHub Repo]https://github.com/denzlchapman/individual-capstone-denzlchapman.git")
 
@@ -200,7 +176,7 @@ if page == "🏠 Home":
         """
     )
 
-    # TODO: Add more information about your specific project
+    
     st.markdown("---")
     st.markdown("### About This Project")
     st.write(
@@ -216,8 +192,7 @@ if page == "🏠 Home":
     )
     st.markdown("---")
     st.image("data/raw/image/original-dataset.png", caption="Original Dataset Sample")
-    # Show a sample of your data or an image (optional)
-    # st.image("path/to/image.png", caption="Sample visualization")
+    
 
 
 # =============================================================================
@@ -227,26 +202,19 @@ elif page == "📈 Regression Model":
     st.title("📊Marketcap Prediction")
     st.write("Enter financial metrics to get market cap prediction.")
 
-    # Load models
+    
     models = load_models()
 
     if models is None:
         st.stop()
 
-    # Get feature names
+    
     features = models['regression_features']
 
     st.markdown("---")
     st.markdown("### 📊 Financial Metrics Input")
 
-    # Create input fields for each feature
-    # TODO: CUSTOMIZE THIS SECTION FOR YOUR FEATURES!
-    # The example below creates number inputs, but you may need:
-    # - st.selectbox() for categorical features
-    # - st.slider() for bounded numerical features
-    # - Different default values and ranges
-
-    # Create columns for better layout
+    
     col1, col2 = st.columns(2)
 
     with col1:
@@ -371,23 +339,23 @@ elif page == "📈 Regression Model":
 
     st.markdown("---")
 
-    # Prediction button
+    
     if st.button("📈 Predict Market Cap", use_container_width=True):
-        # Create input dataframe
+        
         input_df = pd.DataFrame([input_values])
         
         log_cols = ["revenue", "total-assets", "net-assets", "earnings", "total-debt"]
         input_df[log_cols] = np.log1p(input_df[log_cols])
         input_df = input_df.reindex(columns=models["regression_features"], fill_value=0)
-        # Make prediction
+        
         prediction_log = make_regression_prediction(models, input_df)
         prediction_billions = np.expm1(prediction_log)
         prediction_output = marketcap_prediction_output(prediction_billions)
 
-        # Display result
+        
         st.success(f"### Predicted Marketcap Value: {prediction_output}")
 
-        # Show input summary
+        
         with st.expander("View Input Summary"):
             st.dataframe(input_df)
 
@@ -399,20 +367,20 @@ elif page == "🏷️ Classification Model":
     st.title("🏷️ Company Size Prediction")
     st.write("Enter financial features to get market cap size prediction.")
 
-    # Load models
+    
     models = load_models()
 
     if models is None:
         st.stop()
 
-    # Get feature names and class labels
+   
     features = models['classification_features']
     class_labels = models['label_encoder'].classes_
 
-    # Show the possible categories
+   
     st.info(f"**Possible Categories:** {', '.join(class_labels)}")
 
-    # Show binning info if available
+    
     if models['binning_info']:
         with st.expander("How were categories created?"):
             binning = models['binning_info']
@@ -429,8 +397,7 @@ elif page == "🏷️ Classification Model":
     st.markdown("---")
     st.markdown("### Enter Financial Metrics")
 
-    # Create input fields
-    # TODO: CUSTOMIZE THIS SECTION FOR YOUR FEATURES!
+    
 
     col1, col2 = st.columns(2)
 
@@ -548,18 +515,15 @@ elif page == "🏷️ Classification Model":
 
     st.markdown("---")
 
-    # Prediction button
-    # Prediction button
+   
     if st.button("📊 Predict Market Cap Classification", type="primary"):
-        # Create input dataframe
         input_df = pd.DataFrame([input_values])
         input_df = input_df.reindex(columns=models["classification_features"], fill_value=0)
 
-        # Make prediction
+        
         predicted_label, predicted_index = make_classification_prediction(models, input_df)
 
-        # Display result with color coding
-        # TODO: Customize colors based on your categories
+        
         color_map = {
             'Small Cap': '🔴',
             'Mid Cap': '🟡',
@@ -569,10 +533,7 @@ elif page == "🏷️ Classification Model":
 
         st.success(f"### Predicted Category: {emoji} {predicted_label}")
 
-        # TODO: Add interpretation
-        # st.write(f"This means... [interpretation]")
-
-        # Show input summary
+        
         with st.expander("View Input Summary"):
             st.dataframe(input_df)
         
@@ -589,4 +550,3 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-# TODO: Replace [YOUR NAME] above with your actual name!
